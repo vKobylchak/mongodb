@@ -56,6 +56,7 @@ public class UserTest extends TicketTest {
     MongoDatabase db = mongoClient.getDatabase(databaseName);
     db.getCollection("users").deleteMany(new Document("email", email));
     db.getCollection("users").deleteMany(new Document("email", "log@out.com"));
+    db.getCollection("sessions").deleteMany(new Document("user_id", email));
     db.getCollection("sessions").deleteMany(new Document("user_id", "log@out" +
             ".com"));
   }
