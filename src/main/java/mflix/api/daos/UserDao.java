@@ -3,12 +3,12 @@ package mflix.api.daos;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.Filters;
 import mflix.api.models.Session;
 import mflix.api.models.User;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
+import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +17,8 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;
 
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Updates.set;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
@@ -75,7 +77,12 @@ public class UserDao extends AbstractMFlixDao {
         docSession.setUserId(userId);
         docSession.setJwt(jwt);
 
-        sessionsCollection.insertOne(docSession);
+        Bson querySession = eq("user_id", userId);
+        Bson setSession = set("jwt", jwt);
+        sessionsCollection.updateOne(querySession, setSession);
+
+//        sessionsCollection.insertOne(docSession);
+//        sessionsCollection.updateOne(docSession);
         return true;
 
         //TODO> Ticket: User Management - implement the method that allows session information to be
@@ -92,7 +99,7 @@ public class UserDao extends AbstractMFlixDao {
      */
     public User getUser(String email) {
         //TODO> Ticket: User Management - implement the query that returns the first User object.
-        return this.usersCollection.find(Filters.eq("email", email)).first();
+        return this.usersCollection.find(eq("email", email)).first();
     }
 
     /**
@@ -102,7 +109,7 @@ public class UserDao extends AbstractMFlixDao {
      * @return Session object or null.
      */
     public Session getUserSession(String userId) {
-        return this.sessionsCollection.find(Filters.eq("user_id", userId)).iterator().tryNext();
+        return this.sessionsCollection.find(eq("user_id", userId)).iterator().tryNext();
         //TODO> Ticket: User Management - implement the method that returns Sessions for a given
         // userId
     }
@@ -139,10 +146,17 @@ public class UserDao extends AbstractMFlixDao {
      * @return User object that just been updated.
      */
     public boolean updateUserPreferences(String email, Map<String, ?> userPreferences) {
+
+        if (null == userPreferences) throw new IncorrectDaoOperation("zalet");
+        Bson queryFilter = eq("email", email);
+        Bson queryUpdate = set("preferences", userPreferences);
+        usersCollection.updateOne(queryFilter, queryUpdate);  // findOneAndUpdate()
+
+
         //TODO> Ticket: User Preferences - implement the method that allows for user preferences to
         // be updated.
         //TODO > Ticket: Handling Errors - make this method more robust by
         // handling potential exceptions when updating an entry.
-        return false;
+        return true;
     }
 }
