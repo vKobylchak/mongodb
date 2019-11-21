@@ -11,10 +11,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.mongodb.client.model.Accumulators.first;
+import static com.mongodb.client.model.Accumulators.push;
+import static com.mongodb.client.model.Aggregates.*;
 import static com.mongodb.client.model.Filters.all;
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Sorts.descending;
 
 @Component
 public class MovieDao extends AbstractMFlixDao {
@@ -43,10 +49,14 @@ public class MovieDao extends AbstractMFlixDao {
      * @return true if valid movieId.
      */
     private boolean validIdValue(String movieId) {
+
+//        Document result = moviesCollection.find(new Document("_id", new ObjectId(movieId))).first();
+        Document result = moviesCollection.find(new Document("_id", new ObjectId(movieId))).first();
+//        moviesCollection.find(check);
         //TODO> Ticket: Handling Errors - implement a way to catch a
         //any potential exceptions thrown while validating a movie id.
         //Check out this method's use in the method that follows.
-        return true;
+       return null != result;
     }
 
     /**
@@ -61,13 +71,52 @@ public class MovieDao extends AbstractMFlixDao {
             return null;
         }
 
-        List<Bson> pipeline = new ArrayList<>();
-        // match stage to find movie
-        Bson match = Aggregates.match(Filters.eq("_id", new ObjectId(movieId)));
-        pipeline.add(match);
-        // TODO> Ticket: Get Comments - implement the lookup stage that allows the comments to
-        // retrieved with Movies.
+
+//        List<Bson> pipeline = Arrays.asList(match(eq("_id",
+//                new ObjectId("573a13b5f29313caabd42c2f"))), lookup("comments", "_id", "movie_id", "comments"), unwind("$comments",
+//                new UnwindOptions().preserveNullAndEmptyArrays(true)), sort(descending("comments.date")), group("$_id", push("comments", "$comments")));
+
+        List<Bson> pipeline = Arrays.asList(match(eq("_id",
+                new ObjectId(movieId))), lookup("comments", "_id", "movie_id", "comments"), unwind("$comments"), sort(descending("comments.date")), group("$_id", first("fullplot", "$fullplot"), first("imdb", "$imdb"), first("year", "$year"), first("plot", "$plot"), first("genres", "$genres"), first("rated", "$rated"), first("metacritic", "$metacritic"), first("title", "$title"), first("lastupdated", "$lastupdated"), first("languages", "$languages"), first("writers", "$writers"), first("type", "$type"), first("tomatoes", "$tomatoes"), first("poster", "$poster"), first("num_mflix_comments", "$num_mflix_comments"), first("released", "$released"), first("awards", "$awards"), first("countries", "$countries"), first("cast", "$cast"), first("directors", "$directors"), first("runtime", "$runtime"), push("comments", "$comments")));
+//        List<Bson> pipeline = new ArrayList<>();
+//        // match stage to find movie
+//
+//        Bson match = Aggregates.match(Filters.eq("_id", new ObjectId(movieId)));
+//        pipeline.add(match);
+//
+//        Bson lookup = new Document("$lookup",
+//                new Document("from", "comments")
+//                        .append("localField", "_id")
+//                        .append("foreignField", "movie_id")
+//                        .append("as", "comments"));
+//
+//        pipeline.add(lookup);
+//
+//        Bson sort = Aggregates.sort(Sorts.descending("comments.date"));
+//        pipeline.add(sort);
+////
+//////        pipeline.add(Aggregates.sort(Sorts.descending("comments.date")));
+////
+//////        {
+//////            from: 'comments',
+//////                    let:{'id':'$_id'},
+//////            pipeline:[
+//////            {'$match':
+//////                {'$expr':{'$eq':['$movie_id', '$$id']}}
+//////            }],
+//////            as: 'movie_comments'
+//////        }
+////
+////
+//////        String defaultSortKey = "";
+////
+////
+////        // TODO> Ticket: Get Comments - implement the lookup stage that allows the comments to
+////        // retrieved with Movies.
+
+
         Document movie = moviesCollection.aggregate(pipeline).first();
+
 
         return movie;
     }
@@ -84,7 +133,7 @@ public class MovieDao extends AbstractMFlixDao {
     public List<Document> getMovies(int limit, int skip) {
         String defaultSortKey = "tomatoes.viewer.numReviews";
         List<Document> movies =
-                new ArrayList<>(getMovies(limit, skip, Sorts.descending(defaultSortKey)));
+                new ArrayList<>(getMovies(limit, skip, descending(defaultSortKey)));
         return movies;
     }
 
@@ -167,7 +216,7 @@ public class MovieDao extends AbstractMFlixDao {
      */
     public List<Document> getMoviesByCast(String sortKey, int limit, int skip, String... cast) {
         Bson castFilter = Filters.in("cast", cast);
-        Bson sort = Sorts.descending(sortKey);
+        Bson sort = descending(sortKey);
         //TODO> Ticket: Subfield Text Search - implement the expected cast
         // filter and sort
         List<Document> movies = new ArrayList<>();
@@ -194,7 +243,7 @@ public class MovieDao extends AbstractMFlixDao {
         // query filter
         Bson castFilter = Filters.in("genres", genres);
         // sort key
-        Bson sort = Sorts.descending(sortKey);
+        Bson sort = descending(sortKey);
         List<Document> movies = new ArrayList<>();
         // TODO > Ticket: Paging - implement the necessary cursor methods to support simple
         // pagination like skip and limit in the code below
@@ -276,8 +325,8 @@ public class MovieDao extends AbstractMFlixDao {
         List<Document> movies = new ArrayList<>();
         String sortKey = "tomatoes.viewer.numReviews";
         Bson skipStage = Aggregates.skip(skip);
-        Bson matchStage = Aggregates.match(Filters.in("cast", cast));
-        Bson sortStage = Aggregates.sort(Sorts.descending(sortKey));
+        Bson matchStage = match(Filters.in("cast", cast));
+        Bson sortStage = Aggregates.sort(descending(sortKey));
         Bson limitStage = Aggregates.limit(limit);
         Bson facetStage = buildFacetStage();
         // Using a LinkedList to ensure insertion order
