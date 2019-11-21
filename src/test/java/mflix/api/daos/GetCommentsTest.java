@@ -16,7 +16,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.print.Doc;
 import java.util.Date;
 import java.util.List;
 
@@ -69,13 +68,13 @@ public class GetCommentsTest extends TicketTest {
     List<Document> commentDocs = (List<Document>) movieDocument.get("comments");
     int expectedSize = 147;
     Assert.assertEquals(
-        "Comments list size does not match expected", expectedSize, commentDocs.size());
+            "Comments list size does not match expected", expectedSize, commentDocs.size());
 
     String expectedName = "Arya Stark";
     Assert.assertEquals(
-        "Expected `name` field does match: check your " + "getMovie() comments sort order.",
-        expectedName,
-        commentDocs.get(1).getString("name"));
+            "Expected `name` field does match: check your " + "getMovie() comments sort order.",
+            expectedName,
+            commentDocs.get(1).getString("name"));
   }
 
   @Test
@@ -83,10 +82,9 @@ public class GetCommentsTest extends TicketTest {
     String nonExistingMovieId = "a73a1396559313caabc14181";
 
     Assert.assertNull(
-        "Non-existing movieId should return null document. " + "Check your getMovie() method",
-        dao.getMovie(nonExistingMovieId));
+            "Non-existing movieId should return null document. " + "Check your getMovie() method",
+            dao.getMovie(nonExistingMovieId));
   }
-
 
   @Test
   public void testInsertedComment(){
@@ -100,7 +98,7 @@ public class GetCommentsTest extends TicketTest {
       }
     }
     Assert.assertTrue("Did not find the expected comment in the comments " +
-            "array: Check your buildLookupStage method",
+                    "array: Check your buildLookupStage method",
             foundDocument);
   }
 
