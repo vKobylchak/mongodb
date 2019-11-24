@@ -1,6 +1,8 @@
 package mflix.api.daos;
 
 import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoWriteException;
+import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import mflix.api.models.Session;
@@ -16,8 +18,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.exists;
 import static com.mongodb.client.model.Updates.set;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
@@ -59,8 +63,24 @@ public class UserDao extends AbstractMFlixDao {
     public boolean addUser(User user) {
         if (user == null) return false;
         //TODO > Ticket: Durable Writes -  you might want to use a more durable write concern here!
-        usersCollection.insertOne(user);
-        return true;
+//        try {
+        if (null == usersCollection.find(eq("name", user.getName())).first()) {
+            usersCollection.withWriteConcern(WriteConcern.MAJORITY.withWTimeout(2, TimeUnit.MICROSECONDS)).insertOne(user);
+            return true;
+        } else
+            throw new IncorrectDaoOperation("FAKE ID");
+//        } catch (MongoWriteException e) {
+//            System.out.println(e.getError().getCategory());
+//            return false;
+//        }
+//        if(null == usersCollection.find(exists(user.getName()))) {
+//            usersCollection.insertOne(user);
+//            return true;
+//        }
+//        else {
+//            throw new MongoWriteException("Users");
+//            return false;
+//        }
         //TODO > Ticket: Handling Errors - make sure to only add new users
         // and not users that already exist.
     }
